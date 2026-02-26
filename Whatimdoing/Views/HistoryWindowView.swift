@@ -2,18 +2,48 @@ import SwiftUI
 
 struct HistoryWindowView: View {
     @ObservedObject var store: ActivityStore
+    @State private var searchText = ""
+
+    private var allActivities: [Activity] {
+        var result: [Activity] = []
+        if let current = store.currentActivity {
+            result.append(current)
+        }
+        result.append(contentsOf: store.activities)
+        return result
+    }
+
+    private var filteredActivities: [Activity] {
+        let source = allActivities
+        guard !searchText.isEmpty else { return source }
+        return source.filter {
+            $0.text.localizedCaseInsensitiveContains(searchText)
+        }
+    }
 
     private var groupedActivities: [(String, [Activity])] {
-        let grouped = Dictionary(grouping: store.activities) { activity in
+        let source = filteredActivities
+        let grouped = Dictionary(grouping: source) { activity in
             dateLabel(for: activity.startedAt)
         }
-        let order = store.activities.map { dateLabel(for: $0.startedAt) }
+        let order = source.map { dateLabel(for: $0.startedAt) }
         var seen = Set<String>()
         let uniqueOrder = order.filter { seen.insert($0).inserted }
         return uniqueOrder.compactMap { key in
             guard let items = grouped[key] else { return nil }
             return (key, items)
         }
+    }
+
+    private var todayStats: (count: Int, duration: TimeInterval) {
+        let calendar = Calendar.current
+        let todayActivities = store.activities.filter { calendar.isDateInToday($0.startedAt) }
+        let totalDuration = todayActivities.compactMap(\.duration).reduce(0, +)
+        if let current = store.currentActivity, calendar.isDateInToday(current.startedAt) {
+            let activeDuration = Date().timeIntervalSince(current.startedAt)
+            return (todayActivities.count + 1, totalDuration + activeDuration)
+        }
+        return (todayActivities.count, totalDuration)
     }
 
     var body: some View {
@@ -36,20 +66,42 @@ struct HistoryWindowView: View {
                 .background(.green.opacity(0.08))
             }
 
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                TextField("Search activities…", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.primary.opacity(0.03))
+
             Divider()
 
-            if store.activities.isEmpty {
+            if filteredActivities.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
-                    Image(systemName: "clock")
+                    Image(systemName: searchText.isEmpty ? "clock" : "magnifyingglass")
                         .font(.system(size: 32))
                         .foregroundStyle(.tertiary)
-                    Text("No activities yet")
+                    Text(searchText.isEmpty ? "No activities yet" : "No results for \"\(searchText)\"")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.secondary)
-                    Text("Start tracking from the menu bar")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.tertiary)
+                    if searchText.isEmpty {
+                        Text("Start tracking from the menu bar")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 Spacer()
             } else {
@@ -71,11 +123,22 @@ struct HistoryWindowView: View {
 
             Divider()
 
-            HStack {
+            HStack(spacing: 12) {
+                let stats = todayStats
                 Text("\(store.activities.count) \(store.activities.count == 1 ? "activity" : "activities")")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+
+                if stats.duration > 0 {
+                    Text("·")
+                        .foregroundStyle(.tertiary)
+                    Text("Today: \(stats.count) tasks, \(formatDuration(stats.duration))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
+
                 Button("Clear History") {
                     store.clearHistory()
                 }
@@ -103,6 +166,15 @@ struct HistoryWindowView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
+    }
+
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let minutes = Int(interval) / 60
+        if minutes < 1 { return "< 1m" }
+        if minutes < 60 { return "\(minutes)m" }
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+        return "\(hours)h \(remainingMinutes)m"
     }
 }
 
