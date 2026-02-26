@@ -29,18 +29,17 @@ struct PopoverContentView: View {
                     .font(.system(size: 13))
                     .focused($isInputFocused)
                     .onSubmit { saveActivity() }
-                    .onChange(of: inputText) { newValue in
+                    .onChange(of: inputText) { _, newValue in
                         showSuggestions = !newValue.isEmpty
                     }
 
                 Button(action: saveActivity) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .medium))
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.white)
+                        .font(.system(size: 16))
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .buttonStyle(.borderless)
                 .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
-                .keyboardShortcut(.return, modifiers: [])
 
                 Button(action: cancel) {
                     Image(systemName: "xmark")
@@ -48,7 +47,6 @@ struct PopoverContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .keyboardShortcut(.escape, modifiers: [])
             }
 
             if !filteredSuggestions.isEmpty {

@@ -1,9 +1,11 @@
 import Foundation
+import SwiftData
 
-struct Activity: Codable, Identifiable, Hashable {
-    let id: UUID
+@Model
+class Activity {
+    var id: UUID
     var text: String
-    let startedAt: Date
+    var startedAt: Date
     var endedAt: Date?
 
     var duration: TimeInterval? {
