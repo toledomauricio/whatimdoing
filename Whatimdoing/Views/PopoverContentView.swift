@@ -3,10 +3,10 @@ import SwiftUI
 struct PopoverContentView: View {
     @ObservedObject var store: ActivityStore
     var onDismiss: () -> Void
-    var onShowHistory: () -> Void
 
     @State private var inputText = ""
     @State private var showSuggestions = false
+    @State private var isHoveringHistory = false
     @FocusState private var isInputFocused: Bool
 
     var filteredSuggestions: [Activity] {
@@ -34,11 +34,11 @@ struct PopoverContentView: View {
                     }
 
                 Button(action: saveActivity) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.white)
-                        .font(.system(size: 16))
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .medium))
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
 
                 Button(action: cancel) {
@@ -116,18 +116,26 @@ struct PopoverContentView: View {
 
             Button(action: {
                 onDismiss()
-                onShowHistory()
+                NotificationCenter.default.post(name: .showHistoryWindow, object: nil)
             }) {
                 HStack {
                     Image(systemName: "list.clipboard")
                         .font(.system(size: 11))
                     Text("View History")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, weight: .medium))
                 }
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(isHoveringHistory ? Color.blue.opacity(0.8) : Color.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .scaleEffect(isHoveringHistory ? 0.98 : 1.0)
+                .animation(.easeInOut(duration: 0.15), value: isHoveringHistory)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+            .buttonStyle(.borderless)
+            .onHover { hovering in
+                isHoveringHistory = hovering
+            }
         }
         .padding(16)
         .frame(width: 320)

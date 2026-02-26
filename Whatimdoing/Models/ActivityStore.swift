@@ -3,6 +3,7 @@ import SwiftData
 
 extension Notification.Name {
     static let activityDidChange = Notification.Name("activityDidChange")
+    static let showHistoryWindow = Notification.Name("showHistoryWindow")
 }
 
 class ActivityStore: ObservableObject {

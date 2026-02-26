@@ -5,12 +5,7 @@ struct HistoryWindowView: View {
     @State private var searchText = ""
 
     private var allActivities: [Activity] {
-        var result: [Activity] = []
-        if let current = store.currentActivity {
-            result.append(current)
-        }
-        result.append(contentsOf: store.activities)
-        return result
+        return store.activities
     }
 
     private var filteredActivities: [Activity] {

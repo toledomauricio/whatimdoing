@@ -21,6 +21,13 @@ class StatusBarController {
             name: .activityDidChange,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleShowHistory),
+            name: .showHistoryWindow,
+            object: nil
+        )
     }
 
     private func setupStatusItem() {
@@ -42,8 +49,6 @@ class StatusBarController {
         popover.contentViewController = NSHostingController(
             rootView: PopoverContentView(store: store, onDismiss: { [weak self] in
                 self?.popover.performClose(nil)
-            }, onShowHistory: { [weak self] in
-                self?.showHistoryWindow()
             })
         )
         popover.behavior = .transient
@@ -121,6 +126,7 @@ class StatusBarController {
     @objc private func clearCurrentClicked() { store.clearCurrent() }
     @objc private func quitClicked() { NSApp.terminate(nil) }
     @objc private func activityDidChange() { updateTitle() }
+    @objc private func handleShowHistory() { showHistoryWindow() }
 
     private func showHistoryWindow() {
         if let window = historyWindow {
