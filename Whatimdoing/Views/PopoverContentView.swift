@@ -3,6 +3,7 @@ import SwiftUI
 struct PopoverContentView: View {
     @ObservedObject var store: ActivityStore
     var onDismiss: () -> Void
+    var onShowHistory: () -> Void
 
     @State private var inputText = ""
     @State private var showSuggestions = false
@@ -18,12 +19,10 @@ struct PopoverContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
             Text("What are you doing right now?")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            // Input field
             HStack(spacing: 8) {
                 TextField("e.g., reviewing PR #42", text: $inputText)
                     .textFieldStyle(.roundedBorder)
@@ -52,7 +51,6 @@ struct PopoverContentView: View {
                 .keyboardShortcut(.escape, modifiers: [])
             }
 
-            // Suggestions dropdown
             if !filteredSuggestions.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(filteredSuggestions) { activity in
@@ -76,13 +74,10 @@ struct PopoverContentView: View {
                             .padding(.vertical, 5)
                         }
                         .buttonStyle(.plain)
-                        .background(Color.primary.opacity(0.00001)) // hit area
+                        .background(Color.primary.opacity(0.00001))
                         .onHover { hovering in
-                            if hovering {
-                                NSCursor.pointingHand.push()
-                            } else {
-                                NSCursor.pop()
-                            }
+                            if hovering { NSCursor.pointingHand.push() }
+                            else { NSCursor.pop() }
                         }
                     }
                 }
@@ -96,7 +91,6 @@ struct PopoverContentView: View {
 
             Divider()
 
-            // Current activity
             if let current = store.currentActivity {
                 HStack(spacing: 6) {
                     Circle()
@@ -119,6 +113,23 @@ struct PopoverContentView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
+
+            Divider()
+
+            Button(action: {
+                onDismiss()
+                onShowHistory()
+            }) {
+                HStack {
+                    Image(systemName: "list.clipboard")
+                        .font(.system(size: 11))
+                    Text("View History")
+                        .font(.system(size: 12))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
         .padding(16)
         .frame(width: 320)
@@ -128,8 +139,6 @@ struct PopoverContentView: View {
         }
     }
 
-    // MARK: - Actions
-
     private func saveActivity() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -137,16 +146,12 @@ struct PopoverContentView: View {
         onDismiss()
     }
 
-    private func cancel() {
-        onDismiss()
-    }
+    private func cancel() { onDismiss() }
 
     private func selectSuggestion(_ activity: Activity) {
         inputText = activity.text
         saveActivity()
     }
-
-    // MARK: - Formatting
 
     private func formatDuration(_ interval: TimeInterval) -> String {
         let minutes = Int(interval) / 60

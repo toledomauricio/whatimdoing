@@ -13,6 +13,7 @@
 		A10000040000000000000004 /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000040000000000000004; };
 		A10000050000000000000005 /* ActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000050000000000000005; };
 		A10000060000000000000006 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000060000000000000006; };
+		A100000A000000000000000A /* HistoryWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A000000000000000A; };
 		A10000070000000000000007 /* TextTruncator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000070000000000000007; };
 		A10000080000000000000008 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000080000000000000008; };
 		A10000090000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000090000000000000009; };
@@ -25,6 +26,7 @@
 		A20000040000000000000004 /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Activity.swift; sourceTree = "<group>"; };
 		A20000050000000000000005 /* ActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityStore.swift; sourceTree = "<group>"; };
 		A20000060000000000000006 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
+		A200000A000000000000000A /* HistoryWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryWindowView.swift; sourceTree = "<group>"; };
 		A20000070000000000000007 /* TextTruncator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTruncator.swift; sourceTree = "<group>"; };
 		A20000080000000000000008 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		A20000090000000000000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -79,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000060000000000000006 /* PopoverContentView.swift */,
+				A200000A000000000000000A /* HistoryWindowView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -183,6 +186,7 @@
 				A10000040000000000000004 /* Activity.swift in Sources */,
 				A10000050000000000000005 /* ActivityStore.swift in Sources */,
 				A10000060000000000000006 /* PopoverContentView.swift in Sources */,
+				A100000A000000000000000A /* HistoryWindowView.swift in Sources */,
 				A10000070000000000000007 /* TextTruncator.swift in Sources */,
 				A10000080000000000000008 /* Constants.swift in Sources */,
 			);

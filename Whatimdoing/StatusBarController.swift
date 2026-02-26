@@ -5,6 +5,7 @@ class StatusBarController {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
     private let store: ActivityStore
+    private var historyWindow: NSWindow?
 
     init(store: ActivityStore) {
         self.store = store
@@ -13,10 +14,14 @@ class StatusBarController {
 
         setupStatusItem()
         setupPopover()
-        setupObserver()
-    }
 
-    // MARK: - Setup
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(activityDidChange),
+            name: .activityDidChange,
+            object: nil
+        )
+    }
 
     private func setupStatusItem() {
         guard let button = statusItem.button else { return }
@@ -37,22 +42,13 @@ class StatusBarController {
         popover.contentViewController = NSHostingController(
             rootView: PopoverContentView(store: store, onDismiss: { [weak self] in
                 self?.popover.performClose(nil)
+            }, onShowHistory: { [weak self] in
+                self?.showHistoryWindow()
             })
         )
         popover.behavior = .transient
         popover.animates = true
     }
-
-    private func setupObserver() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(activityDidChange),
-            name: .activityDidChange,
-            object: nil
-        )
-    }
-
-    // MARK: - Actions
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }
@@ -76,7 +72,6 @@ class StatusBarController {
     private func showContextMenu() {
         let menu = NSMenu()
 
-        // Recent activities
         let recentActivities = store.recentActivities(limit: 5)
         if !recentActivities.isEmpty {
             let headerItem = NSMenuItem(title: "Recent Activities", action: nil, keyEquivalent: "")
@@ -114,7 +109,6 @@ class StatusBarController {
 
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
-        // Reset menu so left-click still triggers popover
         statusItem.menu = nil
     }
 
@@ -123,23 +117,30 @@ class StatusBarController {
         store.startActivity(text)
     }
 
-    @objc private func setActivityClicked() {
-        togglePopover()
-    }
+    @objc private func setActivityClicked() { togglePopover() }
+    @objc private func clearCurrentClicked() { store.clearCurrent() }
+    @objc private func quitClicked() { NSApp.terminate(nil) }
+    @objc private func activityDidChange() { updateTitle() }
 
-    @objc private func clearCurrentClicked() {
-        store.clearCurrent()
-    }
+    private func showHistoryWindow() {
+        if let window = historyWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
 
-    @objc private func quitClicked() {
-        NSApp.terminate(nil)
+        let hostingView = NSHostingController(rootView: HistoryWindowView(store: store))
+        let window = NSWindow(contentViewController: hostingView)
+        window.title = "Activity History"
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window.setContentSize(NSSize(width: 480, height: 500))
+        window.minSize = NSSize(width: 380, height: 300)
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.historyWindow = window
     }
-
-    @objc private func activityDidChange() {
-        updateTitle()
-    }
-
-    // MARK: - Title
 
     private func updateTitle() {
         guard let button = statusItem.button else { return }

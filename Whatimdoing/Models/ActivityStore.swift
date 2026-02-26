@@ -10,17 +10,12 @@ class ActivityStore: ObservableObject {
 
     private let defaults = UserDefaults.standard
 
-    init() {
-        load()
-    }
-
-    // MARK: - Public
+    init() { load() }
 
     func startActivity(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        // End current activity
         if var current = currentActivity {
             current.endedAt = Date()
             activities.insert(current, at: 0)
@@ -55,14 +50,11 @@ class ActivityStore: ObservableObject {
         save()
     }
 
-    // MARK: - Persistence
-
     private func load() {
         if let data = defaults.data(forKey: Constants.currentActivityKey),
            let activity = try? JSONDecoder().decode(Activity.self, from: data) {
             currentActivity = activity
         }
-
         if let data = defaults.data(forKey: Constants.activityHistoryKey),
            let history = try? JSONDecoder().decode([Activity].self, from: data) {
             activities = history
@@ -76,7 +68,6 @@ class ActivityStore: ObservableObject {
         } else {
             defaults.removeObject(forKey: Constants.currentActivityKey)
         }
-
         if let data = try? JSONEncoder().encode(activities) {
             defaults.set(data, forKey: Constants.activityHistoryKey)
         }
