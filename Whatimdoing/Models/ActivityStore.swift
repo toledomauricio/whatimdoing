@@ -75,6 +75,28 @@ final class ActivityStore {
         defaults.removeObject(forKey: Constants.currentActivityKey)
     }
 
+    func deleteActivity(_ activity: Activity) {
+        if currentActivity?.id == activity.id {
+            currentActivity = nil
+            saveCurrent()
+        }
+        modelContext.delete(activity)
+        save()
+        fetchHistory()
+        NotificationCenter.default.post(name: .activityDidChange, object: nil)
+    }
+
+    func updateActivityText(_ activity: Activity, newText: String) {
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        activity.text = trimmed
+        save()
+        fetchHistory()
+        if currentActivity?.id == activity.id {
+            NotificationCenter.default.post(name: .activityDidChange, object: nil)
+        }
+    }
+
     private func load() {
         fetchHistory()
         if let idString = defaults.string(forKey: Constants.currentActivityKey),

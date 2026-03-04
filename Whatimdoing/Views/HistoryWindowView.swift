@@ -19,6 +19,10 @@ struct ActivityGroup: Identifiable {
 struct HistoryWindowView: View {
     var store: ActivityStore
     @State private var searchText = ""
+    @State private var collapsedSections: Set<String> = []
+    @State private var editingActivityID: UUID?
+    @State private var editText = ""
+    @State private var activityToDelete: Activity?
 
     private var filteredActivities: [Activity] {
         guard !searchText.isEmpty else { return store.activities }
@@ -41,6 +45,36 @@ struct HistoryWindowView: View {
         }
     }
 
+    // MARK: - Helpers
+
+    private func sectionExpanded(_ id: String) -> Binding<Bool> {
+        Binding(
+            get: { !collapsedSections.contains(id) },
+            set: { isExpanded in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isExpanded { collapsedSections.remove(id) }
+                    else { collapsedSections.insert(id) }
+                }
+            }
+        )
+    }
+
+    private func startEditing(_ activity: Activity) {
+        editText = activity.text
+        editingActivityID = activity.id
+    }
+
+    private func commitEdit(_ activity: Activity) {
+        store.updateActivityText(activity, newText: editText)
+        editingActivityID = nil
+        editText = ""
+    }
+
+    private func cancelEditing() {
+        editingActivityID = nil
+        editText = ""
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let current = store.currentActivity {
@@ -56,9 +90,42 @@ struct HistoryWindowView: View {
             } else {
                 List {
                     ForEach(groupedActivities) { group in
-                        Section {
+                        Section(isExpanded: sectionExpanded(group.id)) {
                             ForEach(group.activities) { activity in
-                                ActivityRowView(activity: activity)
+                                ActivityRowView(
+                                    activity: activity,
+                                    isEditing: editingActivityID == activity.id,
+                                    editText: $editText,
+                                    onSaveEdit: { commitEdit(activity) },
+                                    onCancelEdit: cancelEditing
+                                )
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        activityToDelete = activity
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    Button {
+                                        startEditing(activity)
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                                .contextMenu {
+                                    Button {
+                                        startEditing(activity)
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    Button(role: .destructive) {
+                                        activityToDelete = activity
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                             }
                         } header: {
                             Text(group.label)
@@ -75,6 +142,25 @@ struct HistoryWindowView: View {
             StatsFooter(store: store)
         }
         .frame(minWidth: 420, minHeight: 400)
+        .alert(
+            "Delete Activity",
+            isPresented: Binding(
+                get: { activityToDelete != nil },
+                set: { if !$0 { activityToDelete = nil } }
+            ),
+            presenting: activityToDelete
+        ) { activity in
+            Button("Delete", role: .destructive) {
+                withAnimation {
+                    store.deleteActivity(activity)
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                activityToDelete = nil
+            }
+        } message: { activity in
+            Text("Delete \"\(activity.text)\"? This cannot be undone.")
+        }
     }
 }
 
@@ -84,12 +170,16 @@ private struct CurrentActivityBanner: View {
     let activity: Activity
 
     @ScaledMetric(relativeTo: .caption) private var dotSize = 8.0
+    @State private var isPulsing = false
 
     var body: some View {
         HStack(spacing: 8) {
             Circle()
                 .fill(.green)
                 .frame(width: dotSize, height: dotSize)
+                .scaleEffect(isPulsing ? 1.4 : 1.0)
+                .opacity(isPulsing ? 0.6 : 1.0)
+                .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: isPulsing)
             Text(activity.text)
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1)
@@ -102,10 +192,9 @@ private struct CurrentActivityBanner: View {
         .padding(.vertical, 10)
         .background(.green.opacity(0.08))
         .accessibilityElement(children: .combine)
+        .onAppear { isPulsing = true }
     }
 }
-
-// MARK: - Search Bar
 
 private struct SearchBar: View {
     @Binding var searchText: String
@@ -195,8 +284,50 @@ private struct StatsFooter: View {
 
 struct ActivityRowView: View {
     let activity: Activity
+    let isEditing: Bool
+    @Binding var editText: String
+    var onSaveEdit: () -> Void = {}
+    var onCancelEdit: () -> Void = {}
+
+    @FocusState private var isEditFocused: Bool
 
     var body: some View {
+        if isEditing {
+            editingContent
+        } else {
+            displayContent
+        }
+    }
+
+    private var editingContent: some View {
+        HStack(spacing: 8) {
+            TextField("Activity text", text: $editText)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 13))
+                .focused($isEditFocused)
+                .onSubmit { onSaveEdit() }
+                .onExitCommand { onCancelEdit() }
+
+            Button(action: onSaveEdit) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(editText.trimmingCharacters(in: .whitespaces).isEmpty)
+
+            Button(action: onCancelEdit) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.vertical, 2)
+        .onAppear { isEditFocused = true }
+    }
+
+    private var displayContent: some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 Text(activity.text)
