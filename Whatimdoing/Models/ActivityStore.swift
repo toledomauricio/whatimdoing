@@ -6,9 +6,22 @@ extension Notification.Name {
     static let showHistoryWindow = Notification.Name("showHistoryWindow")
 }
 
-class ActivityStore: ObservableObject {
-    @Published var currentActivity: Activity?
-    @Published var activities: [Activity] = []
+@Observable
+@MainActor
+final class ActivityStore {
+    var currentActivity: Activity?
+    var activities: [Activity] = []
+
+    var todayStats: (count: Int, duration: TimeInterval) {
+        let calendar = Calendar.current
+        let todayActivities = activities.filter { calendar.isDateInToday($0.startedAt) }
+        let totalDuration = todayActivities.compactMap(\.duration).reduce(0, +)
+        if let current = currentActivity, calendar.isDateInToday(current.startedAt) {
+            let activeDuration = Date().timeIntervalSince(current.startedAt)
+            return (todayActivities.count + 1, totalDuration + activeDuration)
+        }
+        return (todayActivities.count, totalDuration)
+    }
 
     private let modelContext: ModelContext
     private let defaults = UserDefaults.standard

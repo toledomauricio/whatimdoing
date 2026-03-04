@@ -1,6 +1,7 @@
 import Cocoa
 import SwiftUI
 
+@MainActor
 class StatusBarController {
     private var statusItem: NSStatusItem
     private var popover: NSPopover

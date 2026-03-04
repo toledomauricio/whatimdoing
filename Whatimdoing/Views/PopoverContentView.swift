@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PopoverContentView: View {
-    @ObservedObject var store: ActivityStore
+    var store: ActivityStore
     var onDismiss: () -> Void
 
     @State private var inputText = ""
@@ -23,89 +23,24 @@ struct PopoverContentView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            HStack(spacing: 8) {
-                TextField("e.g., reviewing PR #42", text: $inputText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 13))
-                    .focused($isInputFocused)
-                    .onSubmit { saveActivity() }
-                    .onChange(of: inputText) { _, newValue in
-                        showSuggestions = !newValue.isEmpty
-                    }
-
-                Button(action: saveActivity) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                Button(action: cancel) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
+            ActivityInputBar(
+                inputText: $inputText,
+                isInputFocused: $isInputFocused,
+                onSave: saveActivity,
+                onCancel: cancel
+            )
 
             if !filteredSuggestions.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(filteredSuggestions) { activity in
-                        Button(action: { selectSuggestion(activity) }) {
-                            HStack {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                                Text(activity.text)
-                                    .font(.system(size: 12))
-                                    .lineLimit(1)
-                                Spacer()
-                                if let duration = activity.duration {
-                                    Text(formatDuration(duration))
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                        }
-                        .buttonStyle(.plain)
-                        .background(Color.primary.opacity(0.00001))
-                        .onHover { hovering in
-                            if hovering { NSCursor.pointingHand.push() }
-                            else { NSCursor.pop() }
-                        }
-                    }
-                }
-                .background(.background.opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                SuggestionListView(
+                    suggestions: filteredSuggestions,
+                    onSelect: selectSuggestion
                 )
             }
 
             Divider()
 
             if let current = store.currentActivity {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 6, height: 6)
-                    Text("Current:")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    Text(current.text)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Spacer()
-                    Text(timeAgo(current.startedAt))
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                }
+                CurrentActivityBadge(activity: current)
             } else {
                 Text("No activity set")
                     .font(.system(size: 11))
@@ -114,28 +49,13 @@ struct PopoverContentView: View {
 
             Divider()
 
-            Button(action: {
-                onDismiss()
-                NotificationCenter.default.post(name: .showHistoryWindow, object: nil)
-            }) {
-                HStack {
-                    Image(systemName: "list.clipboard")
-                        .font(.system(size: 11))
-                    Text("View History")
-                        .font(.system(size: 12, weight: .medium))
+            HistoryButton(
+                isHovering: $isHoveringHistory,
+                onTap: {
+                    onDismiss()
+                    NotificationCenter.default.post(name: .showHistoryWindow, object: nil)
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(isHoveringHistory ? Color.blue.opacity(0.8) : Color.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .scaleEffect(isHoveringHistory ? 0.98 : 1.0)
-                .animation(.easeInOut(duration: 0.15), value: isHoveringHistory)
-            }
-            .buttonStyle(.borderless)
-            .onHover { hovering in
-                isHoveringHistory = hovering
-            }
+            )
         }
         .padding(16)
         .frame(width: 320)
@@ -158,23 +78,157 @@ struct PopoverContentView: View {
         inputText = activity.text
         saveActivity()
     }
+}
 
-    private func formatDuration(_ interval: TimeInterval) -> String {
-        let minutes = Int(interval) / 60
-        if minutes < 1 { return "< 1m" }
-        if minutes < 60 { return "\(minutes)m" }
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-        return "\(hours)h \(remainingMinutes)m"
+// MARK: - Activity Input Bar
+
+private struct ActivityInputBar: View {
+    @Binding var inputText: String
+    var isInputFocused: FocusState<Bool>.Binding
+    var onSave: () -> Void
+    var onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("e.g., reviewing PR #42", text: $inputText)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 13))
+                .focused(isInputFocused)
+                .onSubmit { onSave() }
+
+            Button(action: onSave) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
+
+            Button(action: onCancel) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+    }
+}
+
+// MARK: - Suggestion List
+
+private struct SuggestionListView: View {
+    let suggestions: [Activity]
+    let onSelect: (Activity) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(suggestions) { activity in
+                SuggestionRow(activity: activity, onSelect: onSelect)
+            }
+        }
+        .background(.background.opacity(0.6))
+        .clipShape(.rect(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+}
+
+private struct SuggestionRow: View {
+    let activity: Activity
+    let onSelect: (Activity) -> Void
+
+    var body: some View {
+        Button(action: { onSelect(activity) }) {
+            HStack {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(activity.text)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                Spacer()
+                if let duration = activity.duration {
+                    Text(Formatters.formatDuration(duration))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
+        .background(Color.primary.opacity(0.00001))
+        .accessibilityLabel(suggestionAccessibilityLabel)
+        .onHover { hovering in
+            if hovering { NSCursor.pointingHand.push() }
+            else { NSCursor.pop() }
+        }
     }
 
-    private func timeAgo(_ date: Date) -> String {
-        let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 { return "just now" }
-        let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m ago" }
-        let hours = minutes / 60
-        if hours < 24 { return "\(hours)h ago" }
-        return "\(hours / 24)d ago"
+    private var suggestionAccessibilityLabel: String {
+        if let duration = activity.duration {
+            return "\(activity.text), duration \(Formatters.formatDuration(duration))"
+        }
+        return activity.text
+    }
+}
+
+// MARK: - Current Activity Badge
+
+private struct CurrentActivityBadge: View {
+    let activity: Activity
+
+    @ScaledMetric(relativeTo: .caption) private var dotSize = 6.0
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(.green)
+                .frame(width: dotSize, height: dotSize)
+            Text("Current:")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Text(activity.text)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer()
+            Text(Formatters.timeAgo(activity.startedAt))
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - History Button
+
+private struct HistoryButton: View {
+    @Binding var isHovering: Bool
+    var onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                Image(systemName: "list.clipboard")
+                    .font(.system(size: 11))
+                Text("View History")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(isHovering ? Color.blue.opacity(0.8) : Color.blue)
+            .clipShape(.rect(cornerRadius: 6))
+            .scaleEffect(isHovering ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: isHovering)
+        }
+        .buttonStyle(.borderless)
+        .onHover { hovering in
+            isHovering = hovering
+        }
     }
 }

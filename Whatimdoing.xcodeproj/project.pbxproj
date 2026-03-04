@@ -16,6 +16,7 @@
 		A100000A000000000000000A /* HistoryWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A000000000000000A; };
 		A10000070000000000000007 /* TextTruncator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000070000000000000007; };
 		A10000080000000000000008 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000080000000000000008; };
+		A1000000000000000000000B /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B; };
 		A10000090000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000090000000000000009; };
 /* End PBXBuildFile section */
 
@@ -29,6 +30,7 @@
 		A200000A000000000000000A /* HistoryWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryWindowView.swift; sourceTree = "<group>"; };
 		A20000070000000000000007 /* TextTruncator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTruncator.swift; sourceTree = "<group>"; };
 		A20000080000000000000008 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		A2000000000000000000000B /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		A20000090000000000000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000000000000000000000A /* Whatimdoing.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Whatimdoing.entitlements; sourceTree = "<group>"; };
 		A3000000000000000000000B /* Whatimdoing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Whatimdoing.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -91,6 +93,7 @@
 			children = (
 				A20000070000000000000007 /* TextTruncator.swift */,
 				A20000080000000000000008 /* Constants.swift */,
+				A2000000000000000000000B /* Formatters.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -189,6 +192,7 @@
 				A100000A000000000000000A /* HistoryWindowView.swift in Sources */,
 				A10000070000000000000007 /* TextTruncator.swift in Sources */,
 				A10000080000000000000008 /* Constants.swift in Sources */,
+				A1000000000000000000000B /* Formatters.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
