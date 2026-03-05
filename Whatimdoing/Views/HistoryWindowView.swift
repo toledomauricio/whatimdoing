@@ -17,18 +17,16 @@ struct ActivityGroup: Identifiable {
 // MARK: - History Window View
 
 struct HistoryWindowView: View {
-    var store: ActivityStore
+    let store: ActivityStore
     @State private var searchText = ""
+    @State private var debouncedSearchText = ""
     @State private var collapsedSections: Set<String> = []
     @State private var editingActivityID: UUID?
     @State private var editText = ""
     @State private var activityToDelete: Activity?
 
     private var filteredActivities: [Activity] {
-        guard !searchText.isEmpty else { return store.activities }
-        return store.activities.filter {
-            $0.text.localizedCaseInsensitiveContains(searchText)
-        }
+        store.searchActivities(debouncedSearchText)
     }
 
     private var groupedActivities: [ActivityGroup] {
@@ -161,6 +159,17 @@ struct HistoryWindowView: View {
         } message: { activity in
             Text("Delete \"\(activity.text)\"? This cannot be undone.")
         }
+        .task(id: searchText) {
+            if searchText.isEmpty {
+                debouncedSearchText = ""
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(300))
+            debouncedSearchText = searchText
+        }
+        .onChange(of: searchText) {
+            if editingActivityID != nil { cancelEditing() }
+        }
     }
 }
 
@@ -249,19 +258,29 @@ private struct EmptyStateView: View {
 // MARK: - Stats Footer
 
 private struct StatsFooter: View {
-    var store: ActivityStore
+    let store: ActivityStore
+    @State private var selectedPeriod: StatsPeriod = .today
 
     var body: some View {
         HStack(spacing: 12) {
-            let stats = store.todayStats
-            Text("\(store.activities.count) \(store.activities.count == 1 ? "activity" : "activities")")
+            Picker("Period", selection: $selectedPeriod) {
+                ForEach(StatsPeriod.allCases) { period in
+                    Text(period.displayName).tag(period)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 200)
+
+            let stats = store.stats(for: selectedPeriod)
+            Text("\(stats.count) \(stats.count == 1 ? "activity" : "activities")")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             if stats.duration > 0 {
                 Text("·")
                     .foregroundStyle(.tertiary)
-                Text("Today: \(stats.count) tasks, \(Formatters.formatDuration(stats.duration))")
+                Text(Formatters.formatDuration(stats.duration))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -286,8 +305,8 @@ struct ActivityRowView: View {
     let activity: Activity
     let isEditing: Bool
     @Binding var editText: String
-    var onSaveEdit: () -> Void = {}
-    var onCancelEdit: () -> Void = {}
+    let onSaveEdit: () -> Void
+    let onCancelEdit: () -> Void
 
     @FocusState private var isEditFocused: Bool
 

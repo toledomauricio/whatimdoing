@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct PopoverContentView: View {
-    var store: ActivityStore
-    var onDismiss: () -> Void
+    let store: ActivityStore
+    let onDismiss: () -> Void
 
     @State private var inputText = ""
     @State private var showSuggestions = false
@@ -84,9 +84,9 @@ struct PopoverContentView: View {
 
 private struct ActivityInputBar: View {
     @Binding var inputText: String
-    var isInputFocused: FocusState<Bool>.Binding
-    var onSave: () -> Void
-    var onCancel: () -> Void
+    let isInputFocused: FocusState<Bool>.Binding
+    let onSave: () -> Void
+    let onCancel: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {

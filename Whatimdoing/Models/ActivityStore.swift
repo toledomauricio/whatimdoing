@@ -6,6 +6,19 @@ extension Notification.Name {
     static let showHistoryWindow = Notification.Name("showHistoryWindow")
 }
 
+enum StatsPeriod: String, CaseIterable, Identifiable {
+    case today, week, month
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .today: "Today"
+        case .week: "This Week"
+        case .month: "This Month"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class ActivityStore {
@@ -13,14 +26,30 @@ final class ActivityStore {
     var activities: [Activity] = []
 
     var todayStats: (count: Int, duration: TimeInterval) {
+        stats(for: .today)
+    }
+
+    func stats(for period: StatsPeriod) -> (count: Int, duration: TimeInterval) {
         let calendar = Calendar.current
-        let todayActivities = activities.filter { calendar.isDateInToday($0.startedAt) }
-        let totalDuration = todayActivities.compactMap(\.duration).reduce(0, +)
-        if let current = currentActivity, calendar.isDateInToday(current.startedAt) {
-            let activeDuration = Date().timeIntervalSince(current.startedAt)
-            return (todayActivities.count + 1, totalDuration + activeDuration)
+        let now = Date()
+        let startDate: Date
+        switch period {
+        case .today:
+            startDate = calendar.startOfDay(for: now)
+        case .week:
+            startDate = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now))!
+        case .month:
+            startDate = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
         }
-        return (todayActivities.count, totalDuration)
+
+        let periodActivities = activities.filter { $0.startedAt >= startDate && $0.endedAt != nil }
+        let totalDuration = periodActivities.compactMap(\.duration).reduce(0, +)
+
+        if let current = currentActivity, current.startedAt >= startDate {
+            let activeDuration = now.timeIntervalSince(current.startedAt)
+            return (periodActivities.count + 1, totalDuration + activeDuration)
+        }
+        return (periodActivities.count, totalDuration)
     }
 
     private let modelContext: ModelContext
@@ -63,6 +92,18 @@ final class ActivityStore {
         return activities.filter { $0.endedAt != nil && seen.insert($0.text).inserted }
             .prefix(limit)
             .map { $0 }
+    }
+
+    func searchActivities(_ query: String) -> [Activity] {
+        if query.isEmpty { return activities }
+        let predicate = #Predicate<Activity> { activity in
+            activity.text.localizedStandardContains(query)
+        }
+        let descriptor = FetchDescriptor<Activity>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     func clearHistory() {
